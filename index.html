@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gestionnaire PopNight / Wiseplay</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--soft:#e9eef3;--fg:#131a22;--muted:#5b6774;--line:#d5dde5;--acc:#1f5fa6;--accfg:#fff;--ok:#17703c;--err:#a1261b}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1217;--card:#161c24;--soft:#1e2630;--fg:#e4e9ef;--muted:#97a2ae;--line:#2a3440;--acc:#7db6ee;--accfg:#0b1420;--ok:#7fd29c;--err:#ff9d93}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}
+.wrap{max-width:1000px;margin:auto;padding:0 14px}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line)}
+.bar{display:flex;gap:6px;overflow-x:auto;padding:8px 0}
+button,.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--soft);color:var(--fg);padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+button.on{background:var(--acc);color:var(--accfg);border-color:transparent}
+.btn.p{background:var(--acc);color:var(--accfg);border-color:transparent}
+.btn.d{color:var(--err)}
+button:disabled{opacity:.45;cursor:default}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
+textarea{width:100%;min-height:120px}
+.grow{flex:1 1 200px}
+main{padding:16px 0 60px;display:grid;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field label{display:block;font-weight:600;margin-bottom:4px}.field select,.field input{width:100%}
+.hint,small{color:var(--muted);font-size:13px}
+.msg{margin-top:8px;min-height:1.3em;overflow-wrap:anywhere}.ok{color:var(--ok)}.err{color:var(--err)}
+.item{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.item .t{flex:1;min-width:140px;overflow-wrap:anywhere}
+.cathead{margin:14px 0 4px;color:var(--acc);font-weight:700}
+.tag{font-size:12px;background:var(--soft);border-radius:9px;padding:1px 8px;color:var(--muted)}
+.drop{display:block;border:1.5px dashed var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--soft);cursor:pointer;flex:1 1 220px}
+.drop input{margin-top:6px}
+.poster{width:40px;aspect-ratio:2/3;object-fit:cover;background:var(--soft);border-radius:4px;flex:none}
+.hidden{display:none!important}
+.season{margin:8px 0 2px 14px;font-weight:600}
+details{flex:1;min-width:0}summary{cursor:pointer}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+@media(max-width:600px){
+ body{font-size:14px}
+ .wrap{padding:0 10px}
+ .card{padding:12px;border-radius:10px}
+ main{gap:10px;padding-top:10px}
+ .bar{gap:5px}
+ .bar button{padding:8px 10px;font-size:14px}
+ .row{gap:6px}
+ .row>button,.row>.btn,.row>label.btn{flex:1 1 auto;text-align:center}
+ .item{gap:6px}
+ .item .t{min-width:100%}
+ .item button{padding:6px 9px}
+ .drop{flex:1 1 100%}
+ input,select,textarea{font-size:16px}
+ .grow{flex:1 1 100%}
+ .grid2{gap:8px}
+}
+html,body{max-width:100%;overflow-x:hidden}
+main{grid-template-columns:minmax(0,1fr)}
+.card,.item,.row,.grid2,.field{min-width:0;max-width:100%}
+.card{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .row{flex-wrap:wrap}
+ .row>button,.row>.btn,.row>label.btn{flex:1 1 calc(50% - 4px);white-space:normal;min-width:0}
+ .row>input,.row>select{flex:1 1 100%;width:100%}
+ .row>.grow{flex:1 1 100%}
+ .row>.btn.d,.row>button.d{color:var(--err)}
+ .bar button{white-space:nowrap}
+ .item>button{flex:0 0 auto}
+}
+.drop{min-width:0;max-width:100%;box-sizing:border-box}
+.drop input{width:100%;max-width:100%;min-width:0}
+#B{--acc:#6d3fc0;--accfg:#fff}
+#secB.on{background:#6d3fc0;color:#fff;border-color:transparent}
+@media(prefers-color-scheme:dark){#B{--acc:#b89cf2;--accfg:#1a0f2e}#secB.on{background:#b89cf2;color:#1a0f2e}}
+</style></head><body>
+<div class="top"><div class="wrap bar">
+ <button id="secA" class="on" data-act="sec" data-s="A">🎬 Gestionnaire PopNight</button>
+ <button id="secB" data-act="sec" data-s="B">📺 Gestionnaire Wiseplay</button>
+</div></div>
+<main class="wrap">
+
+<!-- ================= SECTION A : INDEX DU SITE ================= -->
+<section id="A">
+ <div class="card">
+  <h2>Fichier index.html</h2>
+  <div class="row">
+   <label class="btn p">📂 Ouvrir index.html<input id="idxFile" type="file" accept=".html,.htm" hidden></label>
+   <button id="undoBtn" data-act="undo" disabled>↶ Annuler</button>
+   <button id="dlBtn" class="btn p" data-act="dlIdx" disabled>💾 Télécharger l’index modifié</button>
+  </div>
+  <p id="idxMsg" class="msg hint">Aucun index chargé. Tu peux aussi glisser ton index.html n’importe où.</p>
+ </div>
+ <div class="bar">
+  <button data-act="sub" data-grp="A" data-p="films">🎬 Films</button>
+  <button data-act="sub" data-grp="A" data-p="series">📺 Séries</button>
+  <button data-act="sub" data-grp="A" data-p="cats">🗂 Catégories</button>
+  <button data-act="sub" data-grp="A" data-p="add">➕ Ajouter</button>
+  <button data-act="sub" data-grp="A" data-p="err">⚠️ Erreurs</button>
+   </div>
+ <div id="bulk" class="card">
+  <div class="row"><input id="aSearch" class="grow" placeholder="🔍 Rechercher…"><select id="mv"></select><button data-act="bmv">Déplacer la sélection</button><button class="btn d" data-act="bdel">Supprimer la sélection</button></div>
+  <div class="row" style="margin-top:8px"><button data-act="selAll">Tout cocher</button><button data-act="selNone">Tout décocher</button><small id="selInfo"></small></div>
+ </div>
+ <div class="pane" data-grp="A" data-p="films"><div id="fList" class="card"></div></div>
+ <div class="pane" data-grp="A" data-p="series"><div id="sList" class="card"></div></div>
+ <div class="pane" data-grp="A" data-p="cats"><div class="grid2"><div id="cF" class="card"></div><div id="cS" class="card"></div></div></div>
+ <div class="pane" data-grp="A" data-p="add">
+  <div class="card"><h2>1 · Fichiers (.m3u, .w3u, .json, .zip)</h2>
+   <label class="drop">Choisis ou glisse tes fichiers ici<input id="iFiles" type="file" multiple accept=".zip,.m3u,.m3u8,.w3u,.json,.txt"></label>
+   <p id="impInfo" class="msg hint"></p><div id="impSrc"></div>
+   <div class="row" style="margin-top:8px"><button data-act="clrList">Vider la liste</button></div></div>
+  <div class="card"><h2>2 · Où ranger les liens</h2>
+   <div class="grid2">
+    <div class="field"><label>Type (texte collé)</label><select id="pType"><option value="auto">Auto</option><option value="film">Tout en films</option><option value="serie">Tout en séries</option></select></div>
+    <div class="field"><label>Position</label><select id="pPos"><option value="0">À la fin</option><option value="1">Au début</option></select></div>
+    <div class="field"><label>Catégorie films</label><select id="pFc"></select></div>
+    <div class="field"><label>Catégorie séries</label><select id="pSc"></select></div>
+   </div>
+   <label class="row" style="margin-top:8px"><input type="checkbox" id="pRepl"> Remplacer si le titre / l’épisode existe déjà</label>
+  </div>
+  <div class="card"><h2>3 · Coller des liens</h2>
+   <textarea id="pText" placeholder="Mario Bros. Le Film&#10;https://uqload.is/embed-xxxx.html"></textarea>
+   <div class="row" style="margin-top:8px"><button data-act="prev">👁 Aperçu</button><button class="btn p" data-act="addText">➕ Ajouter à l’index</button></div>
+   <div id="pRep"></div></div>
+  <div class="card"><h2>4 · Liste importée</h2>
+   <div class="row"><button class="btn p" data-act="lMerge">➕ Ajouter seulement les manquants</button><button data-act="lRepl">🔁 Ajouter + remplacer les liens différents</button><button class="btn d" data-act="lAll">♻️ Repartir à neuf</button></div>
+   <div id="lRep"></div></div>
+ </div>
+ <div class="pane" data-grp="A" data-p="err">
+  <div class="card row"><b id="errTitle" style="flex:1"></b><button class="btn p" data-act="fixAll">🛠 Tout corriger automatiquement</button></div>
+  <div id="errList" class="card"></div>
+ </div>
+ </section>
+
+<!-- ================= SECTION B : PLAYLISTS & AFFICHES ================= -->
+<section id="B" class="hidden">
+ <div class="card">
+  <h2>Fichiers de playlists</h2>
+  <div class="row">
+   <label class="drop">Playlist films (.m3u)<input id="bFilms" type="file" accept=".m3u,.m3u8"></label>
+   <label class="drop">Playlist séries (.w3u)<input id="bSeries" type="file" accept=".w3u,.json"></label>
+  </div>
+  <p id="bLoad" class="msg hint">Charge les fichiers à modifier. Les originaux ne sont jamais écrasés.</p>
+  <p id="bCounts" class="hint"></p>
+  <div class="row"><input id="tmdbKey" class="grow" type="password" placeholder="Clé API TMDB (v3 ou v4)"><button data-act="testKey">Tester</button></div>
+  <p id="keyMsg" class="msg"></p>
+  <div class="row"><button class="btn p" data-act="genB">💾 Télécharger les playlists modifiées</button></div>
+  <p id="genMsg" class="msg"></p>
+ </div>
+ <div class="bar">
+  <button data-act="sub" data-grp="B" data-p="add">➕ Ajout de liens</button>
+  <button data-act="sub" data-grp="B" data-p="rep">🔁 Remplacement</button>
+  <button data-act="sub" data-grp="B" data-p="post">🖼 Affiches</button>
+  <button data-act="sub" data-grp="B" data-p="err">⚠️ Erreurs</button>
+  <button data-act="sub" data-grp="B" data-p="range">📂 Rangement films</button>
+ </div>
+
+ <div class="pane" data-grp="B" data-p="add">
+  <div class="card"><h2>1 · Chercher sur TMDB</h2>
+   <div class="grid2">
+    <div class="field"><label>Type</label><select id="mType"><option value="tv">Série</option><option value="movie">Film</option></select></div>
+    <div class="field"><label>Titre</label><input id="mName" placeholder="Ex. Breaking Bad"></div>
+   </div>
+   <div class="row" style="margin-top:8px"><button class="btn p" data-act="tmdbSearch">Rechercher</button></div>
+   <p id="sMsg" class="msg"></p><div id="tmdbRes"></div><p id="tSel" class="msg hint">Pas besoin de TMDB : écris le nom ci-dessus, puis colle les liens.</p>
+  </div>
+  <div id="placeCard" class="card"><h2>2 · Où ajouter</h2>
+   <div id="tvPlace" class="grid2">
+    <div class="field"><label>Série repère (existante)</label><select id="sTarget"></select></div>
+    <div class="field"><label>Nouvelle série (vide = ajouter à la série repère)</label><input id="sNew"></div>
+    <div class="field"><label>Position de la nouvelle série</label><select id="sPos"><option value="after">Après</option><option value="before">Avant</option></select></div>
+    <div class="field"><label>Saison (si pas de « Saison X » dans le texte)</label><input id="sNum" type="number" min="1" value="1"></div>
+    <div class="field"><label>Premier épisode</label><input id="epStart" type="number" min="1" value="1"></div>
+   </div>
+   <div id="moviePlace" class="grid2 hidden">
+    <div class="field"><label>Catégorie du film</label><input id="mCat" list="catDL" value="HD | Films"></div>
+    <div class="field"><label>Position</label><select id="mPos"><option value="top">Premier rang</option><option value="middle">Milieu</option><option value="bottom" selected>Fin</option></select></div>
+   </div>
+   <div class="field" style="margin-top:10px"><label>Liens (texte libre accepté)</label><textarea id="linksIn" placeholder="Saison 1&#10;https://...&#10;Saison 2&#10;https://..."></textarea></div>
+   <p id="linkCount" class="msg hint"></p>
+   <div class="row"><button class="btn p" id="addBtn" data-act="addLinks" disabled>Ajouter à la playlist</button></div>
+   <p id="addMsg" class="msg"></p>
+  </div>
+  <div class="card"><h2>État des playlists</h2>
+   <div class="row"><button data-act="showList" data-w="series">Séries</button><button data-act="showList" data-w="films">Films</button></div>
+   <div id="entries" style="margin-top:8px"></div></div>
+ </div>
+
+ <div class="pane" data-grp="B" data-p="rep">
+  <div class="card"><h2>1 · Contenu à corriger</h2>
+   <div class="grid2">
+    <div class="field"><label>Playlist</label><select id="rKind"><option value="movie">Films — M3U</option><option value="tv">Séries — W3U</option></select></div>
+    <div class="field"><label>Film ou série</label><select id="rTarget"></select></div>
+   </div>
+   <p id="rInfo" class="msg hint"></p></div>
+  <div class="card"><h2>2 · Colle les nouveaux liens</h2>
+   <textarea id="rLinks" placeholder="Texte libre : seuls les liens http/https sont récupérés."></textarea>
+   <p id="rCount" class="msg hint"></p>
+   <div class="row"><button class="btn p" data-act="rApply">Remplacer les anciens liens</button></div>
+   <p id="rMsg" class="msg"></p></div>
+ </div>
+
+ <div class="pane" data-grp="B" data-p="post">
+  <div class="card"><h2>1 · Film, série ou saison</h2>
+   <div class="grid2">
+    <div class="field"><label>Playlist</label><select id="pKind"><option value="movie">Films — M3U</option><option value="tv">Séries — W3U</option></select></div>
+    <div class="field"><label>Élément</label><select id="pTarget"></select></div>
+   </div>
+   <p id="pInfo" class="msg hint"></p></div>
+  <div class="card"><h2>2 · Chercher la bonne affiche</h2>
+   <div class="row"><input id="pSearch" class="grow" placeholder="Titre"><button class="btn p" data-act="pSearch">Rechercher</button></div>
+   <div id="pResults"></div><p id="pMsg" class="msg"></p></div>
+ </div>
+
+ <div class="pane" data-grp="B" data-p="err">
+  <div class="card">
+   <div class="row"><button class="btn p" data-act="bAudit">ANALYSER</button><button data-act="bRepair">CORRIGER ET TÉLÉCHARGER</button></div>
+   <p id="auditSum" class="msg hint"></p><p id="repMsg" class="msg"></p></div>
+  <div id="auditList" class="card"></div>
+ </div>
+
+ <div class="pane" data-grp="B" data-p="range">
+  <div class="card"><h2>1 · Ranger automatiquement</h2>
+   <div class="grid2">
+    <div class="field"><label>Catégories</label><select id="rCo"><option value="az">De A à Z</option><option value="keep">Ordre actuel</option></select></div>
+    <div class="field"><label>Films dans chaque catégorie</label><select id="rFo"><option value="az">De A à Z</option><option value="za">De Z à A</option><option value="keep">Ordre actuel</option></select></div>
+   </div>
+   <div class="row" style="margin-top:10px"><button class="btn p" data-act="rAll">Ranger les films</button></div>
+   <p id="rAllMsg" class="msg"></p></div>
+  <div class="card"><h2>2 · Déplacer les films cochés</h2>
+   <div class="grid2">
+    <div class="field"><label>Catégorie de destination</label><input id="rCat" list="catDL"></div>
+    <div class="field"><label>Position</label><select id="rPos"><option value="top">Premier rang</option><option value="middle">Milieu</option><option value="bottom" selected>Fin</option></select></div>
+   </div>
+   <div class="row" style="margin-top:10px"><button data-act="rSelAll">Tout cocher</button><button data-act="rSelNone">Tout décocher</button><button class="btn p" data-act="rGo">Déplacer les cochés</button></div>
+   <p id="rMvMsg" class="msg"></p></div>
+  <div class="card"><h2>3 · Ordre des catégories</h2><div id="cList"></div></div>
+  <div class="card"><h2>4 · Films</h2><p id="rSum" class="hint"></p><div id="rList"></div></div>
+ </div>
+</section>
+</main>
+<datalist id="catDL"></datalist>
+<script>
+/* ===================== OUTILS COMMUNS ===================== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean=t=>String(t??'').replace(/\s+/g,' ').trim();
+const norm=t=>clean(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const nc=x=>norm(x).replace(/^(hd|sd|fhd|4k) /,'').replace(/^catalogue /,'').replace(/s$/,'');
+const numOf=s=>+((String(s??'').match(/\d+/)||[0])[0])||0;
+const setMsg=(id,t,c='')=>{const el=$(id);if(el){el.textContent=t;el.className='msg '+c}};
+const PEND='À classer',isPend=g=>nc(g.l)===nc(PEND);
+const NOIDX='<p class="hint">Ouvre d’abord ton index.html (bouton en haut).</p>';
+const STOP=new Set('le la les l un une des de du d et the a an of in on and to au aux en film films serie series saison episode catalogue'.split(' '));
+const TK=new Map();
+const toks=t=>{if(!TK.has(t))TK.set(t,norm(t).split(' ').filter(w=>w&&!STOP.has(w)&&!/^s?\d+(e\d*)?$/.test(w)));return TK.get(t)};
+const jac=(a,b)=>{const x=new Set(a),y=new Set(b);if(!x.size||!y.size)return 0;let i=0;x.forEach(w=>{if(y.has(w))i++});return i/(x.size+y.size-i)};
+const keyOf=u=>{const m=u.match(/(?:embed-|\/e\/|\/v\/|\/d\/)([a-z0-9]{8,})/i);return m?m[1].toLowerCase():u.toLowerCase().replace(/^https?:\/\/(www\.)?/,'').replace(/[?#].*$/,'')};
+const fixUrl=u=>{u=String(u||'').trim().replace(/^["'<]+|["'>]+$/g,'').replace(/^http:\/\//i,'https://').replace(/([?&])autoplay=1&?/i,'$1').replace(/[?&]$/,'');const m=u.match(/^https:\/\/(uqload\.[a-z]+)\/(?:embed-)?([a-z0-9]+)(?:\.html)?(?:[?#].*)?$/i);return m?`https://${m[1].toLowerCase()}/embed-${m[2]}.html`:u};
+const okUrl=u=>/^https?:\/\/[^\s\/]+\.[^\s\/]+\/\S+/.test(u);
+const extractUrls=t=>(String(t).match(/https?:\/\/[^\s<>"'`]+/gi)||[]).map(u=>u.replace(/[),.;\]}]+$/g,''));
+const cleanCat=g=>{const c=clean(String(g||'').replace(/^\s*(HD|SD|FHD|4K)\s*\|\s*/i,'').replace(/\s*\|\s*/g,' · '));return /^catalogue\b/i.test(c)?c:(c?'Catalogue '+c:'')};
+const cleanT=t=>clean(String(t||'').replace(/\s*\[(HD|SD|FHD|4K|VF|VOSTFR|FR)\]\s*/gi,' ').replace(/\s*\((HD|SD|FHD|4K|VF|VOSTFR)\)\s*/gi,' ').replace(/^\s*(HD|SD|FHD|4K|VF|VOSTFR)\s*[|:–-]\s*/i,''));
+const sx=t=>{let m;
+ if(m=t.match(/^(.*?)[\s._:-]*S(?:aison)?[\s._]*(\d{1,2})[\s._,:-]*(?:E|Ep|Épisode|Episode)[\s._]*(\d{1,3})/i))return{n:m[1],s:+m[2],e:+m[3]};
+ if(m=t.match(/^(.*?)[\s._:-]*(\d{1,2})x(\d{1,3})\b/i))return{n:m[1],s:+m[2],e:+m[3]};
+ return null};
+function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+function setOpts(sel,opts){const v=sel.value;sel.innerHTML=opts.map(o=>`<option value="${esc(o.v)}">${esc(o.l)}</option>`).join('');if(opts.some(o=>o.v===v))sel.value=v}
+const insertIdx=(arr,catOf,cat,where)=>{const idx=[];arr.forEach((x,i)=>{if(catOf(x)===cat)idx.push(i)});if(!idx.length)return arr.length;if(where==='top')return idx[0];if(where==='middle')return idx[Math.floor(idx.length/2)];return idx[idx.length-1]+1};
+const filmCat=x=>((x.meta||'').match(/group-title="([^"]*)"/i)||[])[1]||'';
+function setCat(it,c){const base=(it.meta||'#EXTINF:-1').trim();it.meta=/group-title="[^"]*"/i.test(base)?base.replace(/group-title="[^"]*"/i,`group-title="${c}"`):`${base} group-title="${c}"`}
+
+/* ===================== SECTION A : INDEX ===================== */
+const A={txt:'',films:[],series:[],eps:{},P:null,hist:[],list:[],srcs:[],sel:new Set(),p:'films',iss:[],sug:[],pRes:null,lRes:null,log:[]};
+const snap=()=>{A.hist.push(JSON.stringify([A.films,A.series,A.eps]));if(A.hist.length>30)A.hist.shift()};
+const undo=()=>{if(!A.hist.length)return false;[A.films,A.series,A.eps]=JSON.parse(A.hist.pop());A.sel.clear();return true};
+function loadIndex(t){
+ const a=t.indexOf('<select id="channelSelect720"'),b=t.indexOf('<select id="categorySelect_s"'),c=t.indexOf('const episodes = {');
+ if(a<0||b<0||c<0)throw new Error('menus films / séries / épisodes introuvables (ce n’est pas le bon index.html ?)');
+ const c1=t.indexOf('{',c),r=/\n\s*\};/g;r.lastIndex=c1;const m=r.exec(t);
+ if(!m)throw new Error('fin du bloc épisodes introuvable');
+ const P={a:[t.indexOf('>',a)+1,t.indexOf('</select>',a)],b:[t.indexOf('>',b)+1,t.indexOf('</select>',b)],c:[c1,m.index+m[0].indexOf('}')+1]};
+ const groups=h=>[...new DOMParser().parseFromString('<select>'+h+'</select>','text/html').querySelectorAll('optgroup')];
+ const films=groups(t.slice(...P.a)).map(g=>({l:g.label,it:[...g.querySelectorAll('option')].map(o=>({t:clean(o.textContent),u:o.value.trim()}))}));
+ const series=groups(t.slice(...P.b)).map(g=>({l:g.label,n:[...g.querySelectorAll('option')].map(o=>o.value.trim())}));
+ const eps=new Function('return '+t.slice(...P.c))();
+ Object.assign(A,{films,series,eps,P,txt:t,hist:[]});A.sel.clear();
+}
+function buildIndex(){
+ const P=A.P,E=A.eps;
+ const fh='\n                <option value="">-- Selectionnez un film --</option>\n'+A.films.map(g=>`                <optgroup label="${esc(g.l)}">\n`+g.it.map(i=>`                    <option value="${esc(i.u)}">${esc(i.t)}</option>\n`).join('')+'                </optgroup>\n').join('');
+ const sh='\n<option value="">-- Sélectionnez le nom de la série --</option>\n'+A.series.map(g=>`<optgroup label="${esc(g.l)}">\n`+g.n.map(n=>`<option value="${esc(n)}">${esc(n)}</option>\n`).join('')+'</optgroup>\n').join('');
+ const names=Object.keys(E).filter(n=>Object.keys(E[n]).some(s=>Object.keys(E[n][s]).length));
+ const ob='{\n'+names.map(n=>'            '+JSON.stringify(n)+': {\n'+Object.keys(E[n]).filter(s=>Object.keys(E[n][s]).length).map(s=>'                '+s+': {\n'+Object.keys(E[n][s]).map(e=>'                    '+e+': '+JSON.stringify(E[n][s][e])).join(',\n')+'\n                }').join(',\n')+'\n            }').join(',\n')+'\n        }';
+ return A.txt.slice(0,P.a[0])+fh+A.txt.slice(P.a[1],P.b[0])+sh+A.txt.slice(P.b[1],P.c[0])+ob+A.txt.slice(P.c[1]);
+}
+async function openIndex(f){try{loadIndex(await f.text());setMsg('idxMsg',`${f.name} chargé : ${A.films.reduce((a,g)=>a+g.it.length,0)} films · ${Object.keys(A.eps).length} séries.`,'ok')}catch(e){A.txt='';setMsg('idxMsg','Fichier non reconnu : '+e.message,'err')}renderA()}
+
+/* --- lecture des listes (texte, M3U, W3U/JSON, ZIP) --- */
+function parseText(txt,mode){
+ const out=[];let title='',urls=[],meta=null;
+ const flush=()=>{
+   if(urls.length>1&&mode!=='film'&&!sx(title))urls.forEach((u,i)=>out.push({type:'serie',n:title,s:1,e:i+1,u}));
+   else urls.forEach(u=>out.push({t:title,u}));
+   title='';urls=[]};
+ for(const raw of txt.split(/\r?\n/)){
+  const l=raw.trim();if(!l)continue;
+  if(/^#EXTINF/i.test(l)){flush();const i=l.lastIndexOf('",');meta={t:clean(i>=0?l.slice(i+2):l.slice(l.indexOf(',')+1)),g:(l.match(/group-title="([^"]*)"/i)||[])[1]};continue}
+  if(l[0]==='#')continue;
+  const m=l.match(/https?:\/\/\S+/);
+  if(!m){flush();title=clean(l.replace(/^(titre|film|série|serie)\s*:\s*/i,''));continue}
+  if(meta){out.push({t:meta.t,u:m[0],g:meta.g});meta=null;continue}
+  const t=clean(l.replace(m[0],'').replace(/^[\s|;:–—-]+|[\s|;:–—-]+$/g,''));
+  if(t){flush();out.push({t,u:m[0]});continue}
+  if(title)urls.push(m[0]);else out.push({t:'',u:m[0]});
+ }
+ flush();
+ return out.map(e=>{
+  if(e.type==='serie')return e;
+  const x=mode==='film'?null:sx(e.t||'');
+  if(x&&clean(x.n))return{type:'serie',n:clean(x.n),s:x.s,e:x.e,u:e.u,t:e.t};
+  if(mode==='serie')return{type:'serie',n:e.t,s:1,e:0,u:e.u};
+  return{type:'film',t:e.t,u:e.u,g:e.g}});
+}
+function parseJSON(j){const out=[],root=Array.isArray(j)?j:(j.groups||[]);
+ root.forEach(g=>{
+  (g.groups||g.seasons||[]).forEach((s,si)=>(s.stations||s.episodes||[]).forEach((st,ei)=>out.push({type:'serie',n:clean(g.name),s:numOf(s.name)||si+1,e:numOf(st.name)||ei+1,u:st.url||st.link||'',t:st.name})));
+  (g.stations||[]).forEach(st=>out.push({type:'film',t:clean(st.name),u:st.url||st.link||'',g:g.name}))});
+ return out}
+function parseAny(txt,mode){const t=txt.trim();
+ const E=/^[\[{]/.test(t)?parseJSON(JSON.parse(t)):parseText(t,mode);
+ return E.map(e=>mode==='film'&&e.type==='serie'?{type:'film',t:e.n,u:e.u}:e)}
+function addList(name,text){const f=name.replace(/.*\//,'');
+ if(/(^|[^a-z])(tv|cam)([^a-z]|$)/i.test(f)||/index\.json$/i.test(f)){A.srcs.push({f,skip:1});return}
+ try{const mode=/serie/i.test(f)?'serie':/film/i.test(f)?'film':'auto';const E=parseAny(text,mode);A.list.push(...E);A.srcs.push({f,n:E.length})}
+ catch(e){A.srcs.push({f,err:e.message})}}
+async function unzip(buf){const v=new DataView(buf),u=new Uint8Array(buf);let e=u.length-22;while(e>=0&&v.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('zip invalide');
+ let p=v.getUint32(e+16,true);const out=[];
+ for(let i=0,n=v.getUint16(e+10,true);i<n;i++){const m=v.getUint16(p+10,true),cs=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),cl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true),name=new TextDecoder().decode(u.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;
+  if(!/\.(m3u8?|w3u|json|txt)$/i.test(name))continue;const s=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true);let d=u.subarray(s,s+cs);
+  if(m===8)d=new Uint8Array(await new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  out.push({name,text:new TextDecoder().decode(d)})}
+ return out}
+async function importFiles(files){
+ for(const f of [...files]){try{if(/\.zip$/i.test(f.name))(await unzip(await f.arrayBuffer())).forEach(z=>addList(z.name,z.text));else addList(f.name,await f.text())}catch(e){A.srcs.push({f:f.name,err:e.message})}}
+ A.lRes=null;sec('A');sub('A','add')}
+
+/* --- fusion : cœur de l'outil --- */
+function ensureCat(kd,name,R){const L=kd==='f'?A.films:A.series;let g=L.find(x=>nc(x.l)===nc(name));if(!g){g=kd==='f'?{l:name,it:[]}:{l:name,n:[]};L.push(g);if(R)R.cats.push(name)}return g}
+function suggestCat(list,title,hint){let best=null,bs=0;const tk=toks(title),hn=hint?nc(hint):'';
+ for(const g of list){if(isPend(g))continue;let sc=0;
+  if(hn&&nc(g.l)===hn)sc=100;
+  (g.it?g.it.map(i=>i.t):g.n).forEach(t=>{const j=jac(tk,toks(t))*100;if(j>sc)sc=j});
+  if(sc<40&&toks(g.l).some(w=>tk.includes(w)))sc=40;
+  if(sc>bs){bs=sc;best=g.l}}
+ return bs>=35?best:null}
+function merge(E,o){
+ const R={add:[],rep:[],dup:[],conf:[],bad:[],cats:[]},keys=new Set();
+ A.films.forEach(g=>g.it.forEach(i=>keys.add(keyOf(i.u))));
+ for(const n in A.eps)for(const s in A.eps[n])for(const e in A.eps[n][s])keys.add(keyOf(A.eps[n][s][e]));
+ for(const e of E){
+  const u=fixUrl(e.u),k=keyOf(u),isS=e.type==='serie';
+  if(!okUrl(u)||(isS?!clean(e.n):!clean(e.t))){R.bad.push(e);continue}
+  if(keys.has(k)){R.dup.push(e);continue}
+  if(!isS){
+   const t=clean(e.t);let ex=null;
+   A.films.forEach(g=>g.it.forEach(i=>{if(norm(i.t)===norm(t))ex=i}));
+   if(ex){if(o.repl){ex.u=u;keys.add(k);R.rep.push({t,u})}else R.conf.push({...e,t});continue}
+   const cat=o.fc||suggestCat(A.films,t,e.g)||cleanCat(e.g)||PEND;
+   const g=ensureCat('f',cat,R);
+   o.pos?g.it.unshift({t,u}):g.it.push({t,u});keys.add(k);R.add.push({t,u,cat:g.l});
+  }else{
+   const n=Object.keys(A.eps).find(x=>norm(x)===norm(e.n))||clean(e.n),s=e.s||1;
+   const se=(A.eps[n]||{})[s]||{};
+   const ep=e.e||Math.max(0,...Object.keys(se).map(Number))+1;
+   const exists=se[ep]!==undefined;
+   if(exists&&!o.repl){R.conf.push({...e,t:`${n} S${s}E${ep}`});continue}
+   A.eps[n]=A.eps[n]||{};A.eps[n][s]=A.eps[n][s]||{};A.eps[n][s][ep]=u;keys.add(k);
+   let cat=(A.series.find(g=>g.n.includes(n))||{}).l;
+   if(!cat){const g=ensureCat('s',o.sc||suggestCat(A.series,n)||PEND,R);o.pos?g.n.unshift(n):g.n.push(n);cat=g.l}
+   (exists?R.rep:R.add).push({t:`${n} S${s}E${ep}`,u,cat});
+  }
+ }
+ return R}
+const sim=(E,o)=>{const b=JSON.stringify([A.films,A.series,A.eps]);const r=merge(E,o);[A.films,A.series,A.eps]=JSON.parse(b);return r};
+function delSerie(n){delete A.eps[n];A.series.forEach(g=>g.n=g.n.filter(x=>x!==n))}
+function renameSer(o,v){A.eps[v]=A.eps[o];delete A.eps[o];A.series.forEach(g=>g.n=g.n.map(n=>n===o?v:n))}
+</script>
+<script>
+/* ===================== SECTION A : CONTRÔLE, ANALYSE, ASSISTANT ===================== */
+function scan(){
+ const I=[],seen={};
+ const chk=(w,u,setU,del)=>{const f=fixUrl(u);
+  if(!okUrl(f)){I.push({m:`${w} : lien invalide « ${u||'vide'} »`});return}
+  if(f!==u)I.push({m:`${w} : lien à remettre au format`,fix:()=>setU(f)});
+  const k=keyOf(f);
+  if(seen[k])I.push({m:`${w} : même lien que ${seen[k]} (doublon)`,fix:del});
+  else seen[k]=w};
+ A.films.forEach(g=>g.it.slice().forEach(it=>{
+  const w=`Film « ${it.t||'?'} » (${g.l})`;
+  const del=()=>{const i=g.it.indexOf(it);if(i>=0)g.it.splice(i,1)};
+  if(!clean(it.t))I.push({m:`${w} : titre vide`});
+  const x=sx(it.t||'');
+  if(x&&clean(x.n))I.push({m:`${w} : ressemble à un épisode → à ranger dans les séries`,fix:()=>{del();merge([{type:'serie',n:clean(x.n),s:x.s,e:x.e,u:it.u}],{})}});
+  chk(w,it.u,v=>{it.u=v},del)}));
+ const inMenu=new Set();
+ A.series.forEach(g=>g.n.slice().forEach(n=>{
+  const rm=()=>{const i=g.n.indexOf(n);if(i>=0)g.n.splice(i,1)};
+  if(inMenu.has(n))I.push({m:`Série « ${n} » en double dans le menu`,fix:rm});
+  inMenu.add(n);
+  if(!A.eps[n])I.push({m:`Série « ${n} » dans le menu sans épisodes`,fix:rm})}));
+ Object.keys(A.eps).forEach(n=>{
+  const o=A.eps[n];
+  if(!inMenu.has(n))I.push({m:`Série « ${n} » : épisodes présents mais absente du menu`,fix:()=>{ensureCat('s',PEND).n.push(n)}});
+  const ss=Object.keys(o).map(Number).sort((a,b)=>a-b);
+  if(!ss.length)I.push({m:`Série « ${n} » sans saison`,fix:()=>{delete A.eps[n]}});
+  ss.forEach((s,si)=>{
+   const so=o[s],es=Object.keys(so).map(Number).sort((a,b)=>a-b);
+   if(si>0&&s-ss[si-1]>1)I.push({m:`${n} : saison(s) manquante(s) avant S${s}`});
+   if(!es.length)I.push({m:`${n} saison ${s} : vide`,fix:()=>{delete o[s]}});
+   es.forEach((e,ei)=>{
+    chk(`${n} S${s}E${e}`,so[e],v=>{so[e]=v},()=>{delete so[e]});
+    if(ei>0&&e-es[ei-1]>1)I.push({m:`${n} S${s} : épisode(s) manquant(s) avant E${e}`})})})});
+ ['f','s'].forEach(kd=>{
+  const L=kd==='f'?A.films:A.series,nm={};
+  L.slice().forEach(g=>{
+   const k=nc(g.l);
+   if(!clean(g.l)){I.push({m:'Catégorie sans nom'});return}
+   if(nm[k]){const p=nm[k];I.push({m:`Catégories « ${p.l} » et « ${g.l} » : même nom`,fix:()=>{if(kd==='f')p.it.push(...g.it);else p.n.push(...g.n);const i=L.indexOf(g);if(i>=0)L.splice(i,1)}})}
+   else nm[k]=g;
+   if(!(kd==='f'?g.it:g.n).length&&!isPend(g))I.push({m:`Catégorie vide « ${g.l} »`})})});
+ return I}
+function fixAll(){for(let k=0;k<5;k++){const a=scan().filter(x=>x.fix);if(!a.length)break;a.forEach(x=>{try{x.fix()}catch(e){}})}}
+function cleanTitles(){
+ A.films.forEach(g=>g.it.forEach(i=>{i.t=cleanT(i.t)}));
+ A.series.forEach(g=>g.n=g.n.map(n=>{const c=cleanT(n);if(c===n||A.eps[c])return n;A.eps[c]=A.eps[n];delete A.eps[n];return c}))}
+function dropEmpty(){
+ const emp=g=>!isPend(g)&&!(g.it||g.n).length;
+ const n=A.films.filter(emp).length+A.series.filter(emp).length;
+ A.films=A.films.filter(g=>!emp(g));A.series=A.series.filter(g=>!emp(g));return n}
+function dedup(){const seen=new Set();A.films.forEach(g=>{g.it=g.it.filter(i=>{const k=norm(i.t);if(seen.has(k))return false;seen.add(k);return true})})}
+function rangeP(){
+ let m=0;
+ const pf=A.films.find(isPend);
+ if(pf)pf.it.slice().forEach(it=>{const c=suggestCat(A.films,it.t);if(c){pf.it.splice(pf.it.indexOf(it),1);ensureCat('f',c).it.push(it);m++}});
+ const ps=A.series.find(isPend);
+ if(ps)ps.n.slice().forEach(n=>{const c=suggestCat(A.series,n);if(c){ps.n.splice(ps.n.indexOf(n),1);ensureCat('s',c).n.push(n);m++}});
+ return m}
+function analyse(){
+ const s=[],all=[...A.films,...A.series];
+ const pend=all.filter(isPend).reduce((a,g)=>a+(g.it||g.n).length,0);
+ if(pend)s.push({t:`${pend} élément(s) dans « À classer » : non exportés tant qu’ils restent là`,l:'🔎 Ranger',f:rangeP});
+ const emp=all.filter(g=>!isPend(g)&&!(g.it||g.n).length).length;
+ if(emp)s.push({t:`${emp} catégorie(s) vide(s)`,l:'🧹 Supprimer les vides',f:dropEmpty});
+ const dt=[...A.films.flatMap(g=>g.it.map(i=>i.t)),...A.series.flatMap(g=>g.n)].filter(t=>cleanT(t)!==t).length;
+ if(dt)s.push({t:`${dt} titre(s) avec étiquettes (HD |, [FR]…)`,l:'✨ Nettoyer',f:cleanTitles});
+ const seen=new Set();let dup=0;
+ A.films.forEach(g=>g.it.forEach(i=>{const k=norm(i.t);if(seen.has(k))dup++;else seen.add(k)}));
+ if(dup)s.push({t:`${dup} film(s) en double`,l:'🧽 Retirer les doublons',f:dedup});
+ return s}
+const kindOf=w=>!w?null:/^film/i.test(w)?'f':/^s[ée]rie/i.test(w)?'s':null;
+function findItem(kind,q){
+ const nq=norm(q);if(!nq)return null;const M=[];
+ if(kind!=='s')A.films.forEach(g=>g.it.forEach(it=>{const t=norm(it.t);if(t===nq)M.push({k:'f',g,it,name:it.t,ex:1});else if(nq.length>=4&&t.includes(nq))M.push({k:'f',g,it,name:it.t})}));
+ if(kind!=='f')A.series.forEach(g=>g.n.forEach(n=>{const t=norm(n);if(t===nq)M.push({k:'s',g,n,name:n,ex:1});else if(nq.length>=4&&t.includes(nq))M.push({k:'s',g,n,name:n})}));
+ const ex=M.filter(m=>m.ex),L=ex.length?ex:M;
+ return L.length===1?L[0]:L.length?{amb:L.map(m=>m.name)}:null}
+
+</script>
+<script>
+/* ===================== SECTION A : AFFICHAGE + ACTIONS ===================== */
+function opts(){return{fc:$('pFc').value,sc:$('pSc').value,pos:+$('pPos').value,repl:$('pRepl').checked?1:0}}
+function selFilms(){const r=[];A.sel.forEach(k=>{if(k[0]==='f'){const[,gi,ii]=k.split('|');const it=A.films[gi]&&A.films[gi].it[ii];if(it)r.push(it)}});return r}
+function selSeries(){const r=[];A.sel.forEach(k=>{if(k[0]==='s')r.push(k.slice(2))});return r}
+function rFilms(){
+ if(!A.txt){$('fList').innerHTML=NOIDX;return}
+ const q=norm($('aSearch').value);
+ $('fList').innerHTML=A.films.map((g,gi)=>{
+  const rows=g.it.map((x,i)=>[x,i]).filter(([x])=>!q||norm(x.t+' '+x.u).includes(q));
+  return rows.length?`<div class="cathead">${esc(g.l)} <span class="tag">${g.it.length}</span></div>`+rows.map(([x,i])=>`<div class="item"><input type="checkbox" data-sel="f|${gi}|${i}" ${A.sel.has(`f|${gi}|${i}`)?'checked':''}><span class="t">${esc(x.t)}</span><small>${esc(x.u)}</small><button data-act="fEdit" data-g="${gi}" data-i="${i}">✎</button><button class="btn d" data-act="fDel" data-g="${gi}" data-i="${i}">🗑</button></div>`).join(''):''}).join('')||'<p class="hint">Aucun film.</p>'}
+function rSeries(){
+ if(!A.txt){$('sList').innerHTML=NOIDX;return}
+ const q=norm($('aSearch').value);
+ $('sList').innerHTML=A.series.map(g=>{
+  const names=g.n.filter(n=>!q||norm(n).includes(q));
+  if(!names.length)return'';
+  return `<div class="cathead">${esc(g.l)} <span class="tag">${g.n.length}</span></div>`+names.map(n=>{
+   const o=A.eps[n]||{},ne=Object.values(o).reduce((a,s)=>a+Object.keys(s).length,0),en=esc(n);
+   return `<div class="item"><input type="checkbox" data-sel="s|${en}" ${A.sel.has('s|'+n)?'checked':''}><details class="t"><summary>${en} <span class="tag">${Object.keys(o).length} saison(s) · ${ne} ép.</span></summary>`+
+    Object.keys(o).map(s=>`<div class="season">Saison ${s}</div>`+Object.keys(o[s]).map(e=>`<div class="item"><span class="t">S${s}E${e}</span><small>${esc(o[s][e])}</small><button data-act="eEdit" data-n="${en}" data-s="${s}" data-e="${e}">✎</button><button class="btn d" data-act="eDel" data-n="${en}" data-s="${s}" data-e="${e}">🗑</button></div>`).join('')).join('')+
+    `</details><button data-act="sRen" data-n="${en}">✎ Renommer</button><button class="btn d" data-act="sDel" data-n="${en}">🗑</button></div>`}).join('')}).join('')||'<p class="hint">Aucune série.</p>'}
+function rCats(){
+ if(!A.txt){$('cF').innerHTML=$('cS').innerHTML=NOIDX;return}
+ const row=(k,g,i)=>`<div class="item"><span class="t"><b>${esc(g.l)||'(sans nom)'}</b> <span class="tag">${(k==='f'?g.it:g.n).length}</span></span><button data-act="cRen" data-k="${k}" data-i="${i}">✎</button><button data-act="cMv" data-k="${k}" data-i="${i}" data-d="-1">↑</button><button data-act="cMv" data-k="${k}" data-i="${i}" data-d="1">↓</button><button class="btn d" data-act="cDel" data-k="${k}" data-i="${i}">🗑</button></div>`;
+ const block=(k,L,title)=>`<h2>${title}</h2>`+(L.map((g,i)=>row(k,g,i)).join('')||'<p class="hint">Aucune.</p>')+`<div class="row" style="margin-top:8px"><button data-act="cNew" data-k="${k}">➕ Nouvelle</button><button data-act="cSort" data-k="${k}">Tout A→Z</button></div>`;
+ $('cF').innerHTML=block('f',A.films,'Catégories films');
+ $('cS').innerHTML=block('s',A.series,'Catégories séries');
+}
+function det(h,a){return a.length?`<details><summary>${h} (${a.length})</summary>${a.slice(0,200).map(e=>`<div class="item"><span class="t">${esc(e.t||'(sans titre)')}</span><small>${esc(e.u||'')}</small></div>`).join('')}</details>`:''}
+function repHtml(r,h){
+ if(!r)return'';
+ const ph=r.add.filter(a=>a.cat===PEND).length;
+ return `<div class="card" style="margin-top:10px"><b class="ok">${h} : ${r.add.length} ajouté(s)</b>${r.rep.length?` · 🔁 ${r.rep.length} remplacé(s)`:''} · ${r.dup.length} déjà présent(s)${r.conf.length?` · ⚠️ ${r.conf.length} conflit(s) (coche « remplacer »)`:''}${r.bad.length?` · ❌ ${r.bad.length} invalide(s)`:''}${r.cats.length?`<div>🆕 Catégorie(s) : ${r.cats.map(esc).join(', ')}</div>`:''}${ph?`<div class="err">⏳ ${ph} élément(s) dans « À classer » : non exportés tant qu’ils ne sont pas rangés.</div>`:''}${det('Ajoutés',r.add)}${det('Conflits',r.conf)}${det('Invalides',r.bad)}</div>`}
+function rAdd(){
+ setOpts($('pFc'),[{v:'',l:'🔎 Automatique'},...A.films.map(g=>({v:g.l,l:g.l}))]);
+ setOpts($('pSc'),[{v:'',l:'🔎 Automatique'},...A.series.map(g=>({v:g.l,l:g.l}))]);
+ const ser=A.list.filter(e=>e.type==='serie');
+ $('impInfo').textContent=A.list.length?`${A.list.length-ser.length} film(s) · ${new Set(ser.map(e=>norm(e.n))).size} série(s) · ${ser.length} épisode(s) prêts`:'Rien de chargé pour l’instant.';
+ $('impSrc').innerHTML=A.srcs.map(s=>`<div class="item"><span class="t">${esc(s.f)}</span>${s.skip?'<span class="tag">ignoré (tv / cam / index)</span>':s.err?`<span class="tag err">${esc(s.err)}</span>`:`<span class="tag">${s.n} lien(s)</span>`}</div>`).join('');
+ if(!A.txt){$('pRep').innerHTML=$('lRep').innerHTML=NOIDX;return}
+ $('pRep').innerHTML=repHtml(A.pRes,'Résultat');
+ $('lRep').innerHTML=A.list.length?(A.lRes?repHtml(A.lRes,'Résultat'):repHtml(sim(A.list,opts()),'Aperçu')):'';
+}
+function rErr(){
+ if(!A.txt){$('errTitle').textContent='Ouvre d’abord index.html.';$('errList').innerHTML='';return}
+ A.iss=scan();
+ $('errTitle').textContent=A.iss.length?`⚠️ ${A.iss.length} point(s) à vérifier`:'✅ Aucune erreur détectée';
+ $('errList').innerHTML=A.iss.map((x,i)=>`<div class="item"><span class="t">${esc(x.m)}</span>${x.fix?`<button data-act="fix" data-i="${i}">Corriger</button>`:'<span class="tag">à vérifier</span>'}</div>`).join('')}
+function renderA(){
+ $('undoBtn').disabled=!A.hist.length;
+ $('dlBtn').disabled=!A.txt;
+ $('bulk').classList.toggle('hidden',!['films','series'].includes(A.p));
+ setOpts($('mv'),(A.p==='series'?A.series:A.films).map(g=>({v:g.l,l:g.l})));
+ $('selInfo').textContent=A.sel.size?A.sel.size+' coché(s)':'';
+ if(A.p==='films')rFilms();
+ if(A.p==='series')rSeries();
+ if(A.p==='cats')rCats();
+ if(A.p==='add')rAdd();
+ if(A.p==='err')rErr();
+}
+function sec(s){$('A').classList.toggle('hidden',s!=='A');$('B').classList.toggle('hidden',s!=='B');$('secA').classList.toggle('on',s==='A');$('secB').classList.toggle('on',s==='B')}
+function sub(grp,p){
+ if(grp==='A')A.p=p;else SB.p=p;
+ document.querySelectorAll(`.pane[data-grp="${grp}"]`).forEach(x=>x.classList.toggle('hidden',x.dataset.p!==p));
+ document.querySelectorAll(`button[data-act="sub"][data-grp="${grp}"]`).forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+ if(grp==='A')renderA();else renderB()}
+
+/* ----- actions (clics) ----- */
+const ACT={};
+const MUT=new Set(['bmv','bdel','fDel','fEdit','sRen','sDel','eDel','eEdit','cRen','cDel','cMv','cNew','cSort','apply','fix','fixAll','addText','lMerge','lRepl','lAll','clrList']);
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+ const act=b.dataset.act;
+ if(A.txt&&MUT.has(act))snap();
+ if(ACT[act])ACT[act](b.dataset,b)});
+ACT.sec=d=>sec(d.s);
+ACT.sub=d=>sub(d.grp,d.p);
+ACT.undo=()=>{if(!undo())alert('Rien à annuler.');renderA()};
+ACT.dlIdx=()=>{if(A.txt)download('index.html',buildIndex(),'text/html')};
+ACT.selAll=()=>{if(A.p==='films')A.films.forEach((g,gi)=>g.it.forEach((x,i)=>A.sel.add(`f|${gi}|${i}`)));else if(A.p==='series')A.series.forEach(g=>g.n.forEach(n=>A.sel.add('s|'+n)));renderA()};
+ACT.selNone=()=>{A.sel.clear();renderA()};
+ACT.bmv=()=>{
+ const to=$('mv').value;if(!to)return;
+ if(A.p==='films'){const items=selFilms();if(!items.length)return;A.films.forEach(g=>g.it=g.it.filter(x=>!items.includes(x)));ensureCat('f',to).it.push(...items)}
+ else{const names=selSeries();if(!names.length)return;A.series.forEach(g=>g.n=g.n.filter(n=>!names.includes(n)));ensureCat('s',to).n.push(...names)}
+ A.sel.clear();renderA()};
+ACT.bdel=()=>{
+ if(!A.sel.size||!confirm(A.sel.size+' élément(s) supprimé(s) ?'))return;
+ if(A.p==='films'){const items=selFilms();A.films.forEach(g=>g.it=g.it.filter(x=>!items.includes(x)))}
+ else selSeries().forEach(n=>delSerie(n));
+ A.sel.clear();renderA()};
+ACT.fEdit=d=>{const x=A.films[d.g].it[d.i];const t=prompt('Titre',x.t);if(t===null)return;const u=prompt('Lien',x.u);if(u===null)return;x.t=clean(t);x.u=fixUrl(u);renderA()};
+ACT.fDel=d=>{A.films[d.g].it.splice(+d.i,1);renderA()};
+ACT.sRen=d=>{const v=clean(prompt('Nouveau nom',d.n)||'');if(!v||v===d.n)return;if(A.eps[v]){alert('Ce nom existe déjà.');return}renameSer(d.n,v);renderA()};
+ACT.sDel=d=>{if(confirm(`Supprimer la série « ${d.n} » ?`)){delSerie(d.n);renderA()}};
+ACT.eEdit=d=>{const o=A.eps[d.n][d.s];const u=prompt('Lien',o[d.e]);if(u!==null){o[d.e]=fixUrl(u);renderA()}};
+ACT.eDel=d=>{delete A.eps[d.n][d.s][d.e];renderA()};
+ACT.cRen=d=>{const L=d.k==='f'?A.films:A.series,g=L[d.i],v=clean(prompt('Nom',g.l)||'');if(!v||v===g.l)return;if(L.some(x=>x!==g&&nc(x.l)===nc(v))){alert('Nom déjà utilisé.');return}g.l=v;renderA()};
+ACT.cDel=d=>{const L=d.k==='f'?A.films:A.series,g=L[d.i],n=(g.it||g.n).length;if(n&&!confirm(`Supprimer « ${g.l} » et ses ${n} élément(s) ?`))return;if(d.k==='s')g.n.forEach(x=>{delete A.eps[x]});L.splice(+d.i,1);renderA()};
+ACT.cMv=d=>{const L=d.k==='f'?A.films:A.series,i=+d.i,j=i+ +d.d;if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];renderA()};
+ACT.cSort=d=>{const L=d.k==='f'?A.films:A.series;L.sort((a,b)=>a.l.localeCompare(b.l,'fr',{numeric:true}));renderA()};
+ACT.cNew=d=>{const v=clean(prompt('Nom de la catégorie')||'');if(!v)return;const L=d.k==='f'?A.films:A.series;if(L.some(g=>nc(g.l)===nc(v))){alert('Cette catégorie existe déjà.');return}ensureCat(d.k,v);renderA()};
+ACT.clrList=()=>{A.list=[];A.srcs=[];A.lRes=null;renderA()};
+ACT.prev=()=>{if(!A.txt)return alert('Ouvre d’abord index.html.');try{A.pRes=sim(parseAny($('pText').value,$('pType').value),opts());renderA()}catch(e){alert('Texte illisible : '+e.message)}};
+ACT.addText=()=>{if(!A.txt)return alert('Ouvre d’abord index.html.');try{A.pRes=merge(parseAny($('pText').value,$('pType').value),opts());$('pText').value='';renderA()}catch(e){alert('Texte illisible : '+e.message)}};
+ACT.lMerge=()=>{if(!A.txt)return alert('Ouvre d’abord index.html.');A.lRes=merge(A.list,{...opts(),repl:0});renderA()};
+ACT.lRepl=()=>{if(!A.txt)return alert('Ouvre d’abord index.html.');A.lRes=merge(A.list,{...opts(),repl:1});renderA()};
+ACT.lAll=()=>{
+ if(!A.txt||!confirm('Repartir à neuf : supprimer TOUS les films et séries de l’index et ne garder que cette liste ?'))return;
+ A.films.forEach(g=>g.it=[]);A.series.forEach(g=>g.n=[]);A.eps={};
+ A.lRes=merge(A.list,{...opts(),repl:1});
+ A.films=A.films.filter(g=>g.it.length);A.series=A.series.filter(g=>g.n.length);renderA()};
+ACT.apply=d=>{const s=A.sug[+d.i];if(s&&s.f)s.f();renderA()};
+ACT.fix=d=>{const x=A.iss[+d.i];if(x&&x.fix)x.fix();renderA()};
+ACT.fixAll=()=>{fixAll();renderA()};
+
+/* ----- branchements des champs de la section A ----- */
+$('idxFile').onchange=e=>{const f=e.target.files[0];if(f)openIndex(f);e.target.value=''};
+$('iFiles').onchange=async e=>{await importFiles(e.target.files);e.target.value=''};
+$('aSearch').addEventListener('input',renderA);
+['pFc','pSc','pPos','pRepl'].forEach(id=>$(id).addEventListener('change',()=>{if(A.p==='add')renderA()}));
+document.addEventListener('change',e=>{
+ const c=e.target;
+ if(c.dataset&&c.dataset.sel!==undefined){c.checked?A.sel.add(c.dataset.sel):A.sel.delete(c.dataset.sel);$('selInfo').textContent=A.sel.size?A.sel.size+' coché(s)':'';return}
+ if(c.dataset&&c.dataset.rs!==undefined){const b=blocks()[+c.dataset.rs];if(b){c.checked?SB.rs.add(b.key):SB.rs.delete(b.key)}}
+});
+</script>
+<script>
+/* ===================== SECTION B : PLAYLISTS & AFFICHES TMDB ===================== */
+const SB={films:null,series:null,fName:'PopNight_Films.m3u',sName:'PopNight_serie.w3u',key:'',p:'add',sel:null,selType:null,hits:[],hitType:'',pHits:[],rs:new Set(),audit:[],listW:'series'};
+const poster=p=>p?'https://image.tmdb.org/t/p/w500'+p:'';
+const coll=new Intl.Collator('fr',{numeric:true,sensitivity:'base'});
+function parseM3U(txt){
+ const L=txt.replace(/^﻿/,'').split(/\r?\n/),items=[];
+ for(let i=0;i<L.length;i++){
+  const l=L[i].trim();if(!l.startsWith('#EXTINF:'))continue;
+  const c=l.indexOf(',');let url='';
+  for(let j=i+1;j<L.length;j++){const v=L[j].trim();if(v&&!v.startsWith('#')){url=v;i=j;break}}
+  items.push({meta:c<0?l:l.slice(0,c),title:c<0?'Sans titre':l.slice(c+1).trim(),url})}
+ return{items}}
+const serializeM3U=d=>'#EXTM3U\n'+d.items.map(x=>`${x.meta},${x.title}\n${x.url||''}`).join('\n')+'\n';
+async function tmdb(path,params={}){
+ const key=SB.key.trim();if(!key)throw new Error('Saisis ta clé TMDB.');
+ const u=new URL('https://api.themoviedb.org/3'+path);
+ Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+ const h={accept:'application/json'};
+ if(key.length>40)h.Authorization='Bearer '+key;else u.searchParams.set('api_key',key);
+ const r=await fetch(u,{headers:h});if(!r.ok)throw new Error('Erreur TMDB '+r.status);return r.json()}
+async function seasonImg(id,sn,fallback){if(!sn)return fallback;try{const d=await tmdb(`/tv/${id}/season/${sn}`,{language:'fr-FR'});return poster(d.poster_path)||fallback}catch(e){return fallback}}
+function resultRow(r,i,act,label){return `<div class="item">${r.poster_path?`<img class="poster" src="${poster(r.poster_path)}" alt="">`:'<div class="poster"></div>'}<span class="t"><b>${esc(r.title||r.name)}</b> <small>${esc((r.release_date||r.first_air_date||'').slice(0,4))}</small></span><button class="btn p" data-act="${act}" data-i="${i}">${label}</button></div>`}
+function stations(node,out=[]){(node.stations||[]).forEach(x=>out.push(x));(node.groups||node.seasons||[]).forEach(x=>stations(x,out));return out}
+function filmCats(){return[...new Set((SB.films?.items||[]).map(filmCat).filter(Boolean))]}
+
+/* ----- chargement des fichiers ----- */
+async function loadB(file,kind){
+ if(!file)return;
+ try{
+  const t=await file.text();
+  if(kind==='tv'){const o=JSON.parse(t);if(!Array.isArray(o.groups))throw new Error('W3U invalide (groups introuvable).');SB.series=o;SB.sName=file.name}
+  else{const m=parseM3U(t);if(!m.items.length)throw new Error('aucune entrée #EXTINF trouvée.');SB.films=m;SB.fName=file.name}
+  setMsg('bLoad',`${file.name} chargé.`,'ok');
+ }catch(e){setMsg('bLoad','Erreur : '+e.message,'err')}
+ renderB()}
+$('bFilms').onchange=e=>loadB(e.target.files[0],'movie');
+$('bSeries').onchange=e=>loadB(e.target.files[0],'tv');
+$('tmdbKey').addEventListener('input',e=>{SB.key=e.target.value});
+
+function renderB(){
+ $('bCounts').textContent=`Séries : ${SB.series?SB.series.groups.length+' groupe(s)':'non chargées'} · Films : ${SB.films?SB.films.items.length+' entrée(s)':'non chargés'}`;
+ $('catDL').innerHTML=filmCats().map(c=>`<option value="${esc(c)}">`).join('');
+ if(SB.p==='add')rAddB();
+ if(SB.p==='rep')rRep();
+ if(SB.p==='post')rPost();
+ if(SB.p==='err')renderAudit();
+ if(SB.p==='range')rRange()}
+
+/* ----- ajout de liens (TMDB) ----- */
+function extractSections(raw){
+ const secs=[];let cur=null;
+ for(const line of String(raw).split(/\r?\n/)){
+  const h=line.match(/(?:saison|season)\s*#?\s*(\d+)/i);
+  if(h){cur={season:+h[1],links:[]};secs.push(cur)}
+  for(const u of extractUrls(line)){if(!cur){cur={season:0,links:[]};secs.push(cur)}cur.links.push(u)}}
+ return secs.filter(s=>s.links.length)}
+function linkInfo(){
+ const n=extractSections($('linksIn').value).reduce((a,s)=>a+s.links.length,0);
+ $('linkCount').textContent=n?`${n} lien(s) détecté(s).`:'Aucun lien détecté.';
+ $('addBtn').disabled=!(n&&(SB.sel||clean($('mName').value)))}
+$('mName').addEventListener('input',linkInfo);
+$('mType').onchange=()=>{SB.sel=null;$('tSel').textContent='';$('tvPlace').classList.toggle('hidden',$('mType').value!=='tv');$('moviePlace').classList.toggle('hidden',$('mType').value!=='movie');linkInfo()};
+function rAddB(){
+ setOpts($('sTarget'),(SB.series?.groups||[]).map((g,i)=>({v:String(i),l:g.name||'Sans nom'})));
+ linkInfo();renderEntries()}
+ACT.tmdbSearch=async()=>{
+ const type=$('mType').value,q=clean($('mName').value);
+ if(!q)return setMsg('sMsg','Indique un titre.','err');
+ if(type==='tv'&&!SB.series)return setMsg('sMsg','Charge d’abord la playlist séries.','err');
+ if(type==='movie'&&!SB.films)return setMsg('sMsg','Charge d’abord la playlist films.','err');
+ try{
+  setMsg('sMsg','Recherche…');
+  const d=await tmdb('/search/'+type,{query:q,language:'fr-FR'});
+  SB.hits=(d.results||[]).slice(0,10);SB.hitType=type;
+  $('tmdbRes').innerHTML=SB.hits.map((r,i)=>resultRow(r,i,'pick','Choisir')).join('')||'<p class="hint">Aucun résultat.</p>';
+  setMsg('sMsg',SB.hits.length?'Choisis le bon résultat.':'Aucun résultat.',SB.hits.length?'ok':'err');
+ }catch(e){setMsg('sMsg',e.message,'err')}};
+ACT.pick=d=>{
+ const r=SB.hits[+d.i];
+ SB.sel={id:r.id,title:r.title||r.name,poster:poster(r.poster_path)};SB.selType=SB.hitType;
+ $('placeCard').classList.remove('hidden');
+ $('tvPlace').classList.toggle('hidden',SB.selType!=='tv');
+ $('moviePlace').classList.toggle('hidden',SB.selType!=='movie');
+ $('tSel').textContent='Sélection : '+SB.sel.title;
+ $('sNew').value='';linkInfo()};
+ACT.addLinks=async()=>{
+ const typed=clean($('mName').value);
+ const sel=SB.sel||{id:null,title:typed,poster:''};
+ if(!sel.title)return setMsg('addMsg','Écris le nom du film ou de la série.','err');
+ const secs=extractSections($('linksIn').value);if(!secs.length)return;
+ try{
+  if((SB.sel?SB.selType:$('mType').value)==='tv'){
+   if(!SB.series)throw new Error('Charge d’abord la playlist séries.');
+   const groups=SB.series.groups;let newName=clean($('sNew').value);let serie;
+   if(!newName&&!SB.sel&&typed&&!groups.some(g=>nc(g.name)===nc(typed)))newName=typed;
+   if(newName){
+    serie={name:newName,image:sel.poster,groups:[]};
+    const idx=+$('sTarget').value;
+    const at=groups[idx]?($('sPos').value==='before'?idx:idx+1):groups.length;
+    groups.splice(at,0,serie);
+   }else{
+    serie=(!SB.sel&&typed&&groups.find(g=>nc(g.name)===nc(typed)))||groups[+$('sTarget').value];
+    if(!serie)throw new Error('Choisis une série repère ou écris le nom d’une nouvelle série.');
+   }
+   serie.groups=serie.groups||[];
+   setMsg('addMsg','Récupération des affiches de saison…');
+   const defSeason=+$('sNum').value||1,epStart=+$('epStart').value||1,imgs={};
+   for(const sec of secs){const sn=sec.season||defSeason;if(!(sn in imgs))imgs[sn]=sel.id?await seasonImg(sel.id,sn,sel.poster):sel.poster}
+   let added=0;
+   for(const sec of secs){
+    const sn=sec.season||defSeason,img=imgs[sn];
+    let season=serie.groups.find(g=>numOf(g.name)===sn);
+    if(!season){season={name:'Saison '+sn,image:img,stations:[]};serie.groups.push(season)}
+    season.image=img;season.stations=season.stations||[];
+    let ep=sec.season?1:epStart;
+    sec.links.forEach(u=>{season.stations.push({name:'Épisode '+ep,image:img,url:fixUrl(u)});ep++;added++});
+   }
+   setMsg('addMsg',`${added} lien(s) ajouté(s) à « ${sel.title} ».`,'ok');
+  }else{
+   if(!SB.films)throw new Error('Charge d’abord la playlist films.');
+   const cat=clean($('mCat').value)||'HD | Films',where=$('mPos').value;
+   const items=extractUrls($('linksIn').value).map(u=>({meta:`#EXTINF:-1 tvg-logo="${sel.poster}" group-title="${cat}"`,title:sel.title,url:fixUrl(u)}));
+   SB.films.items.splice(insertIdx(SB.films.items,filmCat,cat,where),0,...items);
+   setMsg('addMsg',`${items.length} lien(s) ajouté(s) pour « ${sel.title} » dans « ${cat} ».`,'ok');
+  }
+  $('linksIn').value='';linkInfo();renderB();renderEntries();
+ }catch(e){setMsg('addMsg',e.message,'err')}};
+function renderEntries(){
+ const w=SB.listW;let h='';
+ if(w==='series'&&SB.series)h=SB.series.groups.map((g,i)=>`<div class="item">${g.image?`<img class="poster" src="${esc(g.image)}" alt="">`:'<div class="poster"></div>'}<span class="t"><b>${esc(g.name||'Sans nom')}</b><br><small>${(g.groups||[]).length} saison(s)</small></span><button class="btn d" data-act="delS" data-i="${i}">Supprimer</button></div>`).join('');
+ if(w==='films'&&SB.films){
+  const seen=new Set(),uniq=[];
+  SB.films.items.forEach(x=>{if(x.title&&!seen.has(x.title)){seen.add(x.title);uniq.push(x)}});
+  h=uniq.map(x=>`<div class="item"><span class="t"><b>${esc(x.title)}</b></span><button class="btn d" data-act="delF" data-t="${esc(x.title)}">Supprimer</button></div>`).join('')}
+ $('entries').innerHTML=h||'<p class="hint">Rien à afficher.</p>'}
+ACT.showList=d=>{SB.listW=d.w;renderEntries()};
+ACT.delS=d=>{const g=SB.series.groups[+d.i];if(!g||!confirm(`Supprimer la série « ${g.name} » et toutes ses saisons ?`))return;SB.series.groups.splice(+d.i,1);renderB();renderEntries()};
+ACT.delF=d=>{if(!confirm(`Supprimer le film « ${d.t} » et toutes ses sources ?`))return;SB.films.items=SB.films.items.filter(x=>x.title!==d.t);renderB();renderEntries()};
+ACT.testKey=async()=>{SB.key=$('tmdbKey').value;try{await tmdb('/configuration');setMsg('keyMsg','Clé valide.','ok')}catch(e){setMsg('keyMsg',e.message,'err')}};
+
+/* ----- remplacement de liens ----- */
+function repOpts(){
+ if($('rKind').value==='movie'){const s=new Set(),o=[];(SB.films?.items||[]).forEach(x=>{if(x.title&&!s.has(x.title)){s.add(x.title);o.push({v:x.title,l:x.title})}});return o}
+ return(SB.series?.groups||[]).map((g,i)=>({v:String(i),l:g.name||'Série '+(i+1)}))}
+function repTargets(){
+ const v=$('rTarget').value;
+ if($('rKind').value==='movie')return(SB.films?.items||[]).filter(x=>x.title===v);
+ const g=SB.series?.groups[+v];return g?stations(g):[]}
+function rRep(){
+ setOpts($('rTarget'),repOpts());
+ const t=repTargets();
+ $('rInfo').textContent=$('rTarget').value?`${t.length} ancien(s) lien(s) trouvé(s).`:'Charge le fichier correspondant.';
+ $('rCount').textContent=`${extractUrls($('rLinks').value).length} nouveau(x) lien(s) détecté(s).`}
+$('linksIn').addEventListener('input',linkInfo);
+$('rKind').onchange=rRep;$('rTarget').onchange=rRep;$('rLinks').addEventListener('input',rRep);
+ACT.rApply=()=>{
+ const v=$('rTarget').value,urls=extractUrls($('rLinks').value);
+ if(!v||!urls.length)return setMsg('rMsg','Choisis un contenu et colle au moins un lien.','err');
+ const t=repTargets();
+ if(!t.length)return setMsg('rMsg','Aucun ancien lien pour cette sélection.','err');
+ const n=Math.min(t.length,urls.length);
+ for(let i=0;i<n;i++)t[i].url=fixUrl(urls[i]);
+ setMsg('rMsg',`${n} lien(s) remplacé(s). ${t.length-n} ancien(s) non modifié(s). Rien n’a été supprimé.`,'ok');
+ $('rLinks').value='';renderB()};
+
+/* ----- affiches ----- */
+function postOpts(){
+ const k=$('pKind').value,o=[];
+ if(k==='movie'){const s=new Set();(SB.films?.items||[]).forEach(x=>{if(x.title&&!s.has(x.title)){s.add(x.title);o.push({v:'m|'+x.title,l:x.title})}})}
+ else{(SB.series?.groups||[]).forEach((g,i)=>{o.push({v:'s|'+i,l:'Série · '+(g.name||'Sans nom')});(g.groups||g.seasons||[]).forEach((s,j)=>o.push({v:`s|${i}|${j}`,l:'    '+(s.name||'Saison '+(j+1))}))})}
+ return o}
+function currentPoster(v){
+ const p=v.split('|');
+ if(p[0]==='m'){const it=(SB.films?.items||[]).find(x=>x.title===p.slice(1).join('|'));return((it?.meta||'').match(/tvg-logo="([^"]*)"/i)||[])[1]||'aucune'}
+ const g=SB.series.groups[+p[1]];if(p.length===2)return g.image||'aucune';
+ const s=(g.groups||g.seasons||[])[+p[2]];return s?.image||'aucune'}
+function rPost(){
+ setOpts($('pTarget'),postOpts());
+ const v=$('pTarget').value;
+ $('pInfo').textContent=v?'Affiche actuelle : '+currentPoster(v):'Charge le fichier correspondant.'}
+$('pKind').onchange=rPost;
+$('pTarget').addEventListener('change',()=>{
+ const p=$('pTarget').value.split('|');let t='';
+ if(p[0]==='m')t=p.slice(1).join('|');
+ else{const g=SB.series.groups[+p[1]];const s=p.length>2?(g.groups||g.seasons||[])[+p[2]]:null;t=(g.name||'')+(s?' '+(s.name||''):'')}
+ $('pSearch').value=t;rPost()});
+ACT.pSearch=async()=>{
+ const q=clean($('pSearch').value);if(!q)return setMsg('pMsg','Saisis un titre.','err');
+ try{
+  setMsg('pMsg','Recherche…');
+  const d=await tmdb('/search/'+($('pKind').value==='movie'?'movie':'tv'),{query:q,language:'fr-FR'});
+  SB.pHits=(d.results||[]).slice(0,10);
+  $('pResults').innerHTML=SB.pHits.map((r,i)=>resultRow(r,i,'pApply','Appliquer')).join('')||'<p class="hint">Aucun résultat.</p>';
+  setMsg('pMsg','Choisis le bon résultat.','ok');
+ }catch(e){setMsg('pMsg',e.message,'err')}};
+ACT.pApply=async d=>{
+ const hit=SB.pHits[+d.i];if(!hit)return;
+ const img=poster(hit.poster_path);
+ if(!img)return setMsg('pMsg','TMDB ne fournit pas d’affiche pour ce résultat.','err');
+ const p=$('pTarget').value.split('|');
+ try{
+  if(p[0]==='m'){const t=p.slice(1).join('|');SB.films.items.filter(x=>x.title===t).forEach(x=>{x.meta=x.meta.replace(/tvg-logo="[^"]*"/i,'').trim()+` tvg-logo="${img}"`})}
+  else{
+   const g=SB.series.groups[+p[1]];
+   if(p.length===2){
+    g.image=img;
+    for(const s of (g.groups||g.seasons||[])){const si=await seasonImg(hit.id,numOf(s.name),img);s.image=si;(s.stations||[]).forEach(ep=>{ep.image=si})}
+   }else{
+    const s=(g.groups||g.seasons||[])[+p[2]];const si=await seasonImg(hit.id,numOf(s.name),img);
+    s.image=si;(s.stations||[]).forEach(ep=>{ep.image=si});
+   }
+  }
+  setMsg('pMsg','Affiche appliquée dans la playlist.','ok');renderB();
+ }catch(e){setMsg('pMsg',e.message,'err')}};
+
+/* ----- contrôle et correction des playlists ----- */
+function auditB(){
+ const F=[],add=(f,lv,m,fix)=>F.push({f,lv,m,fix});
+ if(SB.films)SB.films.items.forEach((it,i)=>{
+  const w=`Film ${i+1} « ${it.title||'sans titre'} »`;
+  if(!clean(it.title))add(SB.fName,'warn',`${w} : titre manquant`,()=>{it.title='Élément '+(i+1)});
+  if(!/^#EXTINF/i.test(it.meta||''))add(SB.fName,'warn',`${w} : en-tête EXTINF incorrect`,()=>{it.meta='#EXTINF:-1'});
+  if(!it.url)add(SB.fName,'err',`${w} : lien absent`);
+  else if(!/^https?:\/\//i.test(it.url))add(SB.fName,'err',`${w} : lien non HTTP(S)`)});
+ if(SB.series)SB.series.groups.forEach((serie,i)=>{
+  const sn=`« ${serie.name||'Série '+(i+1)} »`;
+  if(!clean(serie.name))add(SB.sName,'warn',`Nom manquant dans le groupe ${i+1}`,()=>{serie.name='Série '+(i+1)});
+  const seasons=serie.groups||serie.seasons;
+  if(!Array.isArray(seasons)){add(SB.sName,'warn',`${sn} : aucune saison identifiable`);return}
+  const nums=seasons.map(s=>numOf(s?.name)),sorted=[...nums].sort((a,b)=>a-b);
+  if(nums.some((n,k)=>n!==sorted[k]))add(SB.sName,'err',`Ordre des saisons incorrect dans ${sn} : ${nums.join(', ')}`,()=>seasons.sort((a,b)=>numOf(a?.name)-numOf(b?.name)));
+  seasons.forEach((season,j)=>{
+   const sl=`${sn} · ${season?.name||'saison '+(j+1)}`;
+   if(!clean(season?.name))add(SB.sName,'warn',`Nom manquant pour une saison de ${sn}`,()=>{season.name='Saison '+(j+1)});
+   const eps=season?.stations||season?.episodes;
+   if(!Array.isArray(eps)){add(SB.sName,'warn',`${sl} : liste d’épisodes absente`);return}
+   eps.forEach((ep,k)=>{
+    const u=ep?.url||ep?.link||'';
+    if(!u)add(SB.sName,'err',`${sl} : lien absent (épisode ${k+1})`);
+    else if(!/^https?:\/\//i.test(u))add(SB.sName,'err',`${sl} : lien non HTTP(S) (épisode ${k+1})`);
+    if(!clean(ep?.name))add(SB.sName,'warn',`${sl} : nom d’épisode manquant`,()=>{ep.name='Épisode '+(k+1)})})})});
+ return F}
+function renderAudit(){
+ const F=SB.audit||[],fx=F.filter(f=>f.fix).length;
+ $('auditSum').textContent=F.length?`${F.length} point(s) · ${fx} corrigeable(s) automatiquement · ${F.length-fx} à vérifier à la main.`:'Clique sur ANALYSER.';
+ $('auditList').innerHTML=F.map(f=>`<div class="item"><span class="t">${esc(f.m)}</span><span class="tag">${f.fix?'corrigeable':'à vérifier'}</span></div>`).join('')}
+ACT.bAudit=()=>{SB.audit=auditB();renderAudit()};
+ACT.bRepair=()=>{
+ const F=auditB();let n=0;
+ F.forEach(f=>{if(f.fix){try{f.fix();n++}catch(e){}}});
+ const files=[];
+ if(SB.series){download(SB.sName,JSON.stringify(SB.series,null,2),'application/json');files.push(SB.sName)}
+ if(SB.films){download(SB.fName,serializeM3U(SB.films),'audio/x-mpegurl');files.push(SB.fName)}
+ SB.audit=auditB();
+ setMsg('repMsg',n?`${n} correction(s) appliquée(s). ${files.length} fichier(s) téléchargé(s).`:'Rien à corriger automatiquement.',n?'ok':'');
+ renderB()};
+
+/* ----- rangement des films ----- */
+function blocks(){
+ const m=new Map();
+ (SB.films?.items||[]).forEach(it=>{const c=filmCat(it),k=c+'\u001f'+(it.title||'');if(!m.has(k))m.set(k,{cat:c,title:it.title||'',key:k,items:[]});m.get(k).items.push(it)});
+ return[...m.values()]}
+function setItems(bl){SB.films.items=bl.flatMap(b=>b.items)}
+function rRange(){
+ if(!SB.films){$('rList').innerHTML='<p class="hint">Charge la playlist films.</p>';$('cList').innerHTML='';return}
+ const bl=blocks(),cats=[...new Set(bl.map(b=>b.cat))];
+ $('rSum').textContent=`${bl.length} film(s) · ${SB.films.items.length} source(s) · ${cats.length} catégorie(s).`;
+ $('rList').innerHTML=bl.map((b,i)=>(i===0||b.cat!==bl[i-1].cat?`<div class="cathead">${esc(b.cat||'Sans catégorie')}</div>`:'')+`<div class="item"><input type="checkbox" data-rs="${i}" ${SB.rs.has(b.key)?'checked':''}><span class="t">${esc(b.title||'Film sans titre')} <small>${b.items.length} source(s)</small></span><button data-act="rMove" data-i="${i}" data-d="-1">▲</button><button data-act="rMove" data-i="${i}" data-d="1">▼</button></div>`).join('')||'<p class="hint">Aucun film.</p>';
+ $('cList').innerHTML=cats.map((c,i)=>`<div class="item"><span class="t"><b>${esc(c||'Sans catégorie')}</b> <small>${bl.filter(b=>b.cat===c).length} film(s)</small></span><button data-act="cMoveB" data-i="${i}" data-d="-1">▲</button><button data-act="cMoveB" data-i="${i}" data-d="1">▼</button></div>`).join('')}
+ACT.rMove=d=>{
+ const bl=blocks(),i=+d.i,cur=bl[i];let j=i+ +d.d;
+ while(j>=0&&j<bl.length&&bl[j].cat!==cur.cat)j+=+d.d;
+ if(j<0||j>=bl.length)return;
+ [bl[i],bl[j]]=[bl[j],bl[i]];setItems(bl);renderB()};
+ACT.cMoveB=d=>{
+ const bl=blocks(),order=[...new Set(bl.map(b=>b.cat))],i=+d.i,j=i+ +d.d;
+ if(j<0||j>=order.length)return;
+ [order[i],order[j]]=[order[j],order[i]];
+ const out=[];order.forEach(c=>bl.filter(b=>b.cat===c).forEach(b=>out.push(...b.items)));
+ SB.films.items=out;renderB()};
+ACT.rSelAll=()=>{blocks().forEach(b=>SB.rs.add(b.key));renderB()};
+ACT.rSelNone=()=>{SB.rs.clear();renderB()};
+ACT.rAll=()=>{
+ if(!SB.films)return;
+ const bl=blocks(),g=new Map();
+ bl.forEach(b=>{if(!g.has(b.cat))g.set(b.cat,[]);g.get(b.cat).push(b)});
+ let cats=[...g.keys()];
+ if($('rCo').value==='az')cats.sort((a,b)=>!a?1:!b?-1:coll.compare(a,b));
+ const fo=$('rFo').value,out=[];
+ cats.forEach(c=>{let l=g.get(c);if(fo!=='keep')l=[...l].sort((a,b)=>fo==='za'?coll.compare(b.title,a.title):coll.compare(a.title,b.title));l.forEach(b=>out.push(...b.items))});
+ if(out.length!==SB.films.items.length)return setMsg('rAllMsg','Rangement annulé (contrôle interne).','err');
+ SB.films.items=out;setMsg('rAllMsg','Rangement terminé. Aucun lien supprimé.','ok');renderB()};
+ACT.rGo=()=>{
+ const to=clean($('rCat').value),where=$('rPos').value;
+ if(!SB.films)return;
+ if(!to)return setMsg('rMvMsg','Indique la catégorie de destination.','err');
+ const bl=blocks(),moved=bl.filter(b=>SB.rs.has(b.key));
+ if(!moved.length)return setMsg('rMvMsg','Coche au moins un film.','err');
+ const rest=bl.filter(b=>!SB.rs.has(b.key));
+ moved.forEach(b=>{b.items.forEach(it=>setCat(it,to));b.cat=to});
+ rest.splice(insertIdx(rest,b=>b.cat,to,where),0,...moved);
+ setItems(rest);SB.rs.clear();
+ setMsg('rMvMsg',`${moved.length} film(s) déplacé(s) dans « ${to} ».`,'ok');renderB()};
+
+/* ----- téléchargement ----- */
+ACT.genB=()=>{
+ const n=[];
+ if(SB.series){download(SB.sName,JSON.stringify(SB.series,null,2),'application/json');n.push(SB.sName)}
+ if(SB.films){download(SB.fName,serializeM3U(SB.films),'audio/x-mpegurl');n.push(SB.fName)}
+ setMsg('genMsg',n.length?`${n.length} fichier(s) téléchargé(s). Les originaux ne sont pas écrasés.`:'Charge d’abord une playlist.',n.length?'ok':'err')};
+
+/* ===================== DÉMARRAGE ===================== */
+addEventListener('dragover',e=>e.preventDefault());
+addEventListener('drop',e=>{
+ e.preventDefault();
+ const fs=[...(e.dataTransfer?.files||[])];if(!fs.length)return;
+ const h=fs.find(f=>/\.html?$/i.test(f.name));
+ if(h)openIndex(h);
+ const rest=fs.filter(f=>f!==h);
+ if(rest.length){sec('A');importFiles(rest)}});
+sec('A');
+sub('A','films');
+sub('B','add');
+</script>
+</body></html>
