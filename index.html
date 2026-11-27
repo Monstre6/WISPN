@@ -148,7 +148,6 @@ main{grid-template-columns:minmax(0,1fr)}
  <div class="bar">
   <button data-act="sub" data-grp="B" data-p="add">➕ Ajout de liens</button>
   <button data-act="sub" data-grp="B" data-p="rep">🔁 Remplacement</button>
-  <button data-act="sub" data-grp="B" data-p="post">🖼 Affiches</button>
   <button data-act="sub" data-grp="B" data-p="err">⚠️ Erreurs</button>
   <button data-act="sub" data-grp="B" data-p="range">📂 Rangement films</button>
  </div>
@@ -241,7 +240,8 @@ main{grid-template-columns:minmax(0,1fr)}
    <div class="row" style="margin-top:10px"><button data-act="rSelAll">Tout cocher</button><button data-act="rSelNone">Tout décocher</button><button class="btn p" data-act="rGo">Déplacer les cochés</button></div>
    <p id="rMvMsg" class="msg"></p></div>
   <div class="card"><h2>3 · Ordre des catégories</h2><div id="cList"></div></div>
-  <div class="card"><h2>4 · Films</h2><p id="rSum" class="hint"></p><div id="rList"></div></div>
+  <div class="card"><h2>Catégorie à ranger</h2><select id="rView" style="width:100%"></select><small class="hint">Choisis une catégorie, puis range ses films avec ▲ ▼.</small></div>
+  <div class="card"><h2>4 · Films de la catégorie</h2><p id="rSum" class="hint"></p><div id="rList"></div></div>
  </div>
 </section>
 </main>
@@ -484,7 +484,7 @@ function rFilms(){
  const q=norm($('aSearch').value);
  $('fList').innerHTML=A.films.map((g,gi)=>{
   const rows=g.it.map((x,i)=>[x,i]).filter(([x])=>!q||norm(x.t+' '+x.u).includes(q));
-  return rows.length?`<div class="cathead">${esc(g.l)} <span class="tag">${g.it.length}</span></div>`+rows.map(([x,i])=>`<div class="item"><input type="checkbox" data-sel="f|${gi}|${i}" ${A.sel.has(`f|${gi}|${i}`)?'checked':''}><span class="t">${esc(x.t)}</span><small>${esc(x.u)}</small><button data-act="fEdit" data-g="${gi}" data-i="${i}">✎</button><button class="btn d" data-act="fDel" data-g="${gi}" data-i="${i}">🗑</button></div>`).join(''):''}).join('')||'<p class="hint">Aucun film.</p>'}
+  return rows.length?`<div class="cathead">${esc(g.l)} <span class="tag">${g.it.length}</span></div>`+rows.map(([x,i])=>`<div class="item"><input type="checkbox" data-sel="f|${gi}|${i}" ${A.sel.has(`f|${gi}|${i}`)?'checked':''}><span class="t">${esc(x.t)}</span><small>${esc(x.u)}</small><button data-act="fMove" data-g="${gi}" data-i="${i}" data-d="-1">▲</button><button data-act="fMove" data-g="${gi}" data-i="${i}" data-d="1">▼</button><button data-act="fEdit" data-g="${gi}" data-i="${i}">✎</button><button class="btn d" data-act="fDel" data-g="${gi}" data-i="${i}">🗑</button></div>`).join(''):''}).join('')||'<p class="hint">Aucun film.</p>'}
 function rSeries(){
  if(!A.txt){$('sList').innerHTML=NOIDX;return}
  const q=norm($('aSearch').value);
@@ -544,7 +544,7 @@ function sub(grp,p){
 
 /* ----- actions (clics) ----- */
 const ACT={};
-const MUT=new Set(['bmv','bdel','fDel','fEdit','sRen','sDel','eDel','eEdit','cRen','cDel','cMv','cNew','cSort','apply','fix','fixAll','addText','lMerge','lRepl','lAll','clrList']);
+const MUT=new Set(['bmv','bdel','fDel','fEdit','fMove','sRen','sDel','eDel','eEdit','cRen','cDel','cMv','cNew','cSort','apply','fix','fixAll','addText','lMerge','lRepl','lAll','clrList']);
 document.addEventListener('click',e=>{
  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
  const act=b.dataset.act;
@@ -568,6 +568,11 @@ ACT.bdel=()=>{
  A.sel.clear();renderA()};
 ACT.fEdit=d=>{const x=A.films[d.g].it[d.i];const t=prompt('Titre',x.t);if(t===null)return;const u=prompt('Lien',x.u);if(u===null)return;x.t=clean(t);x.u=fixUrl(u);renderA()};
 ACT.fDel=d=>{A.films[d.g].it.splice(+d.i,1);renderA()};
+ACT.fMove=d=>{
+ const g=A.films[+d.g],i=+d.i,j=i+ +d.d;
+ if(!g||j<0||j>=g.it.length)return;
+ [g.it[i],g.it[j]]=[g.it[j],g.it[i]];
+ A.sel.clear();renderA()};
 ACT.sRen=d=>{const v=clean(prompt('Nouveau nom',d.n)||'');if(!v||v===d.n)return;if(A.eps[v]){alert('Ce nom existe déjà.');return}renameSer(d.n,v);renderA()};
 ACT.sDel=d=>{if(confirm(`Supprimer la série « ${d.n} » ?`)){delSerie(d.n);renderA()}};
 ACT.eEdit=d=>{const o=A.eps[d.n][d.s];const u=prompt('Lien',o[d.e]);if(u!==null){o[d.e]=fixUrl(u);renderA()}};
@@ -626,7 +631,8 @@ async function tmdb(path,params={}){
 async function seasonImg(id,sn,fallback){if(!sn)return fallback;try{const d=await tmdb(`/tv/${id}/season/${sn}`,{language:'fr-FR'});return poster(d.poster_path)||fallback}catch(e){return fallback}}
 function resultRow(r,i,act,label){return `<div class="item">${r.poster_path?`<img class="poster" src="${poster(r.poster_path)}" alt="">`:'<div class="poster"></div>'}<span class="t"><b>${esc(r.title||r.name)}</b> <small>${esc((r.release_date||r.first_air_date||'').slice(0,4))}</small></span><button class="btn p" data-act="${act}" data-i="${i}">${label}</button></div>`}
 function stations(node,out=[]){(node.stations||[]).forEach(x=>out.push(x));(node.groups||node.seasons||[]).forEach(x=>stations(x,out));return out}
-function filmCats(){return[...new Set((SB.films?.items||[]).map(filmCat).filter(Boolean))]}
+const isAff=c=>nc(c||'')===nc('Affiches');
+function filmCats(){return[...new Set((SB.films?.items||[]).map(filmCat).filter(c=>c&&!isAff(c)))]}
 
 /* ----- chargement des fichiers ----- */
 async function loadB(file,kind){
@@ -868,15 +874,17 @@ function blocks(){
 function setItems(bl){SB.films.items=bl.flatMap(b=>b.items)}
 function rRange(){
  if(!SB.films){$('rList').innerHTML='<p class="hint">Charge la playlist films.</p>';$('cList').innerHTML='';return}
- const bl=blocks(),cats=[...new Set(bl.map(b=>b.cat))];
+ const all=blocks(),bl=all.filter(b=>!isAff(b.cat)),cats=[...new Set(bl.map(b=>b.cat))];
+ const cur=cats.includes(SB.view)?SB.view:cats[0];SB.view=cur;
+ $('rView').innerHTML=cats.map(c=>`<option value="${esc(c)}" ${c===cur?'selected':''}>${esc(c||'Sans catégorie')}</option>`).join('');
  $('rSum').textContent=`${bl.length} film(s) · ${SB.films.items.length} source(s) · ${cats.length} catégorie(s).`;
- $('rList').innerHTML=bl.map((b,i)=>(i===0||b.cat!==bl[i-1].cat?`<div class="cathead">${esc(b.cat||'Sans catégorie')} <button class="btn" data-act="rSelCat" data-i="${i}">Cocher cette catégorie</button></div>`:'')+`<div class="item"><input type="checkbox" data-rs="${i}" ${SB.rs.has(b.key)?'checked':''}><span class="t">${esc(b.title||'Film sans titre')} <small>${b.items.length} source(s)</small></span><button data-act="rMove" data-i="${i}" data-d="-1">▲</button><button data-act="rMove" data-i="${i}" data-d="1">▼</button></div>`).join('')||'<p class="hint">Aucun film.</p>';
+ $('rList').innerHTML=bl.filter(b=>b.cat===cur).map(b=>{const i=all.findIndex(x=>x.key===b.key);return `<div class="item"><input type="checkbox" data-rs="${i}" ${SB.rs.has(b.key)?'checked':''}><span class="t">${esc(b.title||'Film sans titre')} <small>${b.items.length} source(s)</small></span><button data-act="rMove" data-i="${i}" data-d="-1">▲</button><button data-act="rMove" data-i="${i}" data-d="1">▼</button></div>`}).join('')||'<p class="hint">Aucun film dans cette catégorie.</p>';
  $('cList').innerHTML=cats.map((c,i)=>`<div class="item"><span class="t"><b>${esc(c||'Sans catégorie')}</b> <small>${bl.filter(b=>b.cat===c).length} film(s)</small></span><button data-act="cMoveB" data-i="${i}" data-d="-1">▲</button><button data-act="cMoveB" data-i="${i}" data-d="1">▼</button></div>`).join('')}
 ACT.rMove=d=>{
- const bl=blocks(),i=+d.i,cur=bl[i];let j=i+ +d.d;
- while(j>=0&&j<bl.length&&bl[j].cat!==cur.cat)j+=+d.d;
- if(j<0||j>=bl.length)return;
- [bl[i],bl[j]]=[bl[j],bl[i]];setItems(bl);renderB()};
+ const bl=blocks(),i=+d.i,cur=bl[i];if(!cur)return;
+ const pos=bl.map((b,k)=>b.cat===cur.cat?k:-1).filter(k=>k>=0),p=pos.indexOf(i),q=p+ +d.d;
+ if(p<0||q<0||q>=pos.length)return;
+ [bl[pos[p]],bl[pos[q]]]=[bl[pos[q]],bl[pos[p]]];setItems(bl);renderB()};
 ACT.cMoveB=d=>{
  const bl=blocks(),order=[...new Set(bl.map(b=>b.cat))],i=+d.i,j=i+ +d.d;
  if(j<0||j>=order.length)return;
@@ -919,11 +927,12 @@ ACT.genB=()=>{
 
 /* ===== Plusieurs films : titres -> TMDB -> file d'attente ===== */
 SB.mHits=[];SB.queue=[];
+$('rView').onchange=()=>{SB.view=$('rView').value;renderB()};
 function renderQCount(){const n=SB.queue.reduce((a,q)=>a+extractUrls(q.links).length,0);$('qCount').textContent=`${SB.queue.length} film(s) · ${n} lien(s)`;$('qAdd').disabled=!n}
 function renderQueue(){
  const mv=$('mType').value==='movie';
  $('qCard').classList.toggle('hidden',!(mv||SB.queue.length));
- $('qList').innerHTML=SB.queue.map((q,i)=>`<div class="card" style="margin-bottom:8px"><div class="row">${q.poster?`<img class="poster" src="${esc(q.poster)}" alt="">`:'<div class="poster"></div>'}<b class="grow">${esc(q.title)}</b></div><div class="field" style="margin-top:8px"><label>Liens (texte libre accepté)</label><textarea data-q="${i}" data-f="links" rows="3">${esc(q.links)}</textarea></div><div class="grid2" style="margin-top:8px"><div class="field"><label>Catégorie</label><input data-q="${i}" data-f="cat" list="catDL" value="${esc(q.cat)}"></div><div class="field"><label>Position</label><select data-q="${i}" data-f="pos">${[['top','Premier rang'],['middle','Milieu'],['bottom','Fin']].map(([v,l])=>`<option value="${v}" ${q.pos===v?'selected':''}>${l}</option>`).join('')}</select></div></div><div class="row" style="margin-top:8px"><button data-act="qUp" data-i="${i}">▲</button><button data-act="qDown" data-i="${i}">▼</button><button class="btn d" data-act="qDel" data-i="${i}">Retirer</button></div></div>`).join('')||'<p class="hint">La file est vide. Écris des titres ci-dessus puis clique sur Rechercher.</p>';
+ $('qList').innerHTML=SB.queue.map((q,i)=>`<div class="card" style="margin-bottom:8px"><div class="row">${q.poster?`<img class="poster" src="${esc(q.poster)}" alt="">`:'<div class="poster"></div>'}<b class="grow">${esc(q.title)}</b></div><div class="field" style="margin-top:8px"><label>Liens (texte libre accepté)</label><textarea data-q="${i}" data-f="links" rows="3">${esc(q.links)}</textarea></div><div class="grid2" style="margin-top:8px"><div class="field"><label>Catégorie</label><input data-q="${i}" data-f="cat" list="catDL" value="${esc(q.cat)}"></div><div class="field"><label>Position</label><select data-q="${i}" data-f="pos">${[['top','Premier rang'],['middle','Milieu'],['bottom','Fin']].map(([v,l])=>`<option value="${v}" ${q.pos===v?'selected':''}>${l}</option>`).join('')}</select></div></div><div class="field" style="margin-top:8px"><label>Rang dans la catégorie (1, 2, 5… vide = selon Position)</label><input type="number" min="1" data-q="${i}" data-f="rank" value="${esc(q.rank||'')}"></div><div class="row" style="margin-top:8px"><button data-act="qUp" data-i="${i}">▲</button><button data-act="qDown" data-i="${i}">▼</button><button class="btn d" data-act="qDel" data-i="${i}">Retirer</button></div></div>`).join('')||'<p class="hint">La file est vide. Écris des titres ci-dessus puis clique sur Rechercher.</p>';
  renderQCount();
 }
 $('qList').addEventListener('input',e=>{const t=e.target,i=+t.dataset.q;if(isNaN(i)||!SB.queue[i])return;SB.queue[i][t.dataset.f]=t.value;renderQCount()});
@@ -942,7 +951,7 @@ async function mSearch(){
 const tvSearch=ACT.tmdbSearch;
 ACT.tmdbSearch=async()=>{if($('mType').value==='movie')return mSearch();return tvSearch()};
 ACT.qPick=d=>{const[ti,ri]=String(d.i).split('|').map(Number),h=SB.mHits[ti],r=h&&h.results[ri];if(!r)return;
- SB.queue.push({id:r.id,title:r.title||r.name,poster:poster(r.poster_path),links:'',cat:clean($('qCat').value)||'HD | Films',pos:$('qPos').value});
+ SB.queue.push({id:r.id,title:r.title||r.name,poster:poster(r.poster_path),links:'',cat:clean($('qCat').value)||'HD | Films',pos:$('qPos').value,rank:''});
  renderQueue();setMsg('sMsg',`« ${r.title||r.name} » ajouté à la file.`,'ok')};
 ACT.qUp=d=>{const i=+d.i;if(i>0)[SB.queue[i-1],SB.queue[i]]=[SB.queue[i],SB.queue[i-1]];renderQueue()};
 ACT.qDown=d=>{const i=+d.i;if(i<SB.queue.length-1)[SB.queue[i+1],SB.queue[i]]=[SB.queue[i],SB.queue[i+1]];renderQueue()};
@@ -950,6 +959,7 @@ ACT.qDel=d=>{SB.queue.splice(+d.i,1);renderQueue()};
 ACT.qApply=()=>{const c=clean($('qCat').value)||'HD | Films',p=$('qPos').value;SB.queue.forEach(q=>{q.cat=c;q.pos=p});renderQueue();setMsg('qMsg','Catégorie et position appliquées à toute la file.','ok')};
 ACT.qSort=()=>{SB.queue.sort((a,b)=>coll.compare(a.title,b.title));renderQueue()};
 ACT.qClear=()=>{if(confirm('Vider la file ?')){SB.queue=[];renderQueue()}};
+const insertRank=(arr,cat,rank)=>{const r=parseInt(rank,10);if(!(r>=1))return null;const idx=[];arr.forEach((x,i)=>{if(filmCat(x)===cat)idx.push(i)});if(!idx.length)return arr.length;return r>idx.length?idx[idx.length-1]+1:idx[r-1]};
 ACT.qAdd=()=>{
  if(!SB.films)return setMsg('qMsg','Charge d’abord la playlist films.','err');
  let added=0;const keep=[];
@@ -958,7 +968,8 @@ ACT.qAdd=()=>{
   if(!urls.length){keep.push(q);return}
   const cat=clean(q.cat)||'HD | Films';
   const items=urls.map(u=>({meta:`#EXTINF:-1 tvg-logo="${q.poster||''}" group-title="${cat}"`,title:q.title,url:fixUrl(u)}));
-  SB.films.items.splice(insertIdx(SB.films.items,filmCat,cat,q.pos),0,...items);
+  const at=insertRank(SB.films.items,cat,q.rank);
+  SB.films.items.splice(at!==null?at:insertIdx(SB.films.items,filmCat,cat,q.pos),0,...items);
   added+=items.length});
  SB.queue=keep;
  setMsg('qMsg',added?`${added} lien(s) ajouté(s). ${keep.length?keep.length+' film(s) restent dans la file (sans lien).':'File vidée.'}`:'Aucun lien à ajouter.',added?'ok':'err');
